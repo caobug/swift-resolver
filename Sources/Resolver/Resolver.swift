@@ -182,12 +182,13 @@ public class Resolver {
 		return r
 	}
 
-	public func resolve(_ name: String, timeout: UInt? = nil) throws -> [ResolverTarget] {
+	public func resolve(_ name: String, types: [ResourceRecordType] = [.host, .host6], timeout: UInt? = nil) throws -> [ResolverTarget] {
 		var result = [ResolverTarget]()
 		var queue = [ResourceRecord]()
 		var cname: String? = nil
-		queue = try query(name, type: .host, timeout: timeout)
-		queue += try query(name, type: .host6, timeout: timeout)
+        for type in types {
+            queue += try query(name, type: type, timeout: timeout)
+        }
 		while !queue.isEmpty {
 			let record = queue.removeFirst()
 			if let host = record as? HostRecord<IPv4> {
@@ -202,8 +203,9 @@ public class Resolver {
 				throw ResolverError.error(detail: "unexpected response")
 			}
 			if queue.isEmpty, result.isEmpty, let alias = cname {
-				queue += try query(alias, type: .host, timeout: timeout)
-				queue += try query(alias, type: .host6, timeout: timeout)
+                for type in types {
+                    queue += try query(alias, type: type, timeout: timeout)
+                }
 			}
 		}
 		return result
